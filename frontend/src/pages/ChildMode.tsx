@@ -70,6 +70,25 @@ const getStoryIcon = (title: string): { emoji: string; color: string } => {
   return { emoji: '📖', color: 'bg-calm-gradient border-calm-blue/50 text-calm-blue-dark hover:bg-calm-blue/20' };
 };
 
+export const getDisplayTitle = (title: string): string => {
+  if (!title) return '';
+  if (title.toLowerCase().startsWith('story about ')) {
+    const topic = title.substring(12).trim();
+    const standardTopics = [
+      'going to the dentist',
+      'getting a haircut',
+      'sharing toys at school',
+      'sharing toys with friends',
+      'custom situation',
+      'new situation'
+    ];
+    if (!standardTopics.includes(topic.toLowerCase())) {
+      return topic;
+    }
+  }
+  return title;
+};
+
 const StoryIllustration: React.FC<{ title: string; visualPrompt: string }> = ({ title, visualPrompt }) => {
   const combinedText = (title + " " + visualPrompt).toLowerCase();
   
@@ -665,7 +684,7 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
                         <div className="bg-white border-2 border-slate-200/50 text-calm-blue-dark w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl font-bold group-hover:scale-105 transition select-none">
                           {visual.emoji}
                         </div>
-                        <h3 className="font-bold text-xl text-calm-blue-dark mb-2">{story.title}</h3>
+                        <h3 className="font-bold text-xl text-calm-blue-dark mb-2">{getDisplayTitle(story.title)}</h3>
                         <p className="text-xs text-slate-400 mb-4">
                           {story.content.length} Pages
                         </p>
@@ -698,7 +717,7 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               </div>
               <h3 className="font-sans font-bold text-3xl text-calm-blue-dark mb-4">Great Job! 🎉</h3>
               <p className="text-slate-600 text-lg max-w-md mx-auto mb-8 leading-relaxed">
-                You read the whole story about <span className="font-bold text-calm-blue-dark">{selectedStory.title}</span> with Lumi. You did amazing!
+                You read the whole story about <span className="font-bold text-calm-blue-dark">{getDisplayTitle(selectedStory.title)}</span> with Lumi. You did amazing!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md">
@@ -741,7 +760,7 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               {/* Reader Header */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-6">
                 <div>
-                  <h3 className="font-bold text-xl text-calm-blue-dark leading-tight">{selectedStory.title}</h3>
+                  <h3 className="font-bold text-xl text-calm-blue-dark leading-tight">{getDisplayTitle(selectedStory.title)}</h3>
                   <p className="text-xs text-slate-400 mt-1 select-none font-semibold uppercase tracking-wider">
                     Page {currentPage + 1} of {selectedStory.content.length}
                   </p>

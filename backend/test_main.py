@@ -284,3 +284,42 @@ def test_delete_story_not_found():
     assert response.status_code == 404
     assert response.json()["detail"] == "Story not found"
 
+def test_generate_story_with_custom_title():
+    payload = {
+        "custom_situation_text": "Going to a birthday party with loud balloons.",
+        "custom_title": "Leo Gets a Haircut",
+        "child_name": "Sam",
+        "key_details": "loves music"
+    }
+    response = client.post("/api/stories/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Leo Gets a Haircut"
+
+def test_generate_story_gemini_custom_title():
+    with patch.dict(os.environ, {"GEMINI_API_KEY": "fake_test_api_key"}):
+        with patch("app.services.ai_service.genai.Client") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.return_value = mock_client
+            
+            mock_response = MagicMock()
+            mock_response.text = json.dumps({
+                "title": "Story about Leo Gets a Haircut from Gemini",
+                "pages": [
+                    {"page_number": 1, "text": "Today, I am getting a haircut.", "visual_prompt": "A happy hair"}
+                ]
+            })
+            mock_client.models.generate_content.return_value = mock_response
+
+            payload = {
+                "custom_situation_text": "Visiting the barber",
+                "custom_title": "Leo Gets a Haircut",
+                "child_name": "Oliver"
+            }
+            response = client.post("/api/stories/generate", json=payload)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["title"] == "Leo Gets a Haircut"
+
+
+

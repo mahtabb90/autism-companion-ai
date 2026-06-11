@@ -35,6 +35,25 @@ const getStoryIcon = (title: string): { emoji: string; color: string } => {
   return { emoji: '📄', color: 'bg-white border-slate-100 text-slate-700' };
 };
 
+export const getDisplayTitle = (title: string): string => {
+  if (!title) return '';
+  if (title.toLowerCase().startsWith('story about ')) {
+    const topic = title.substring(12).trim();
+    const standardTopics = [
+      'going to the dentist',
+      'getting a haircut',
+      'sharing toys at school',
+      'sharing toys with friends',
+      'custom situation',
+      'new situation'
+    ];
+    if (!standardTopics.includes(topic.toLowerCase())) {
+      return topic;
+    }
+  }
+  return title;
+};
+
 interface ParentModeProps {
   onReadStory: (story: Story) => void;
 }
@@ -148,6 +167,7 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
       const payload = {
         situation_id: useCustom ? undefined : Number(selectedSituationId),
         custom_situation_text: useCustom ? customDesc : undefined,
+        custom_title: useCustom ? customTitle : undefined,
         child_name: childName || undefined,
         child_age: childAge ? Number(childAge) : undefined,
         key_details: keyDetails || undefined,
@@ -192,7 +212,13 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
   };
 
   const formatDate = (isoString: string) => {
-    const date = new Date(isoString);
+    if (!isoString) return '';
+    let formattedStr = isoString;
+    // Append 'Z' to treat as UTC if there is no timezone suffix
+    if (!isoString.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(isoString)) {
+      formattedStr = isoString + 'Z';
+    }
+    const date = new Date(formattedStr);
     return date.toLocaleDateString(undefined, { 
       month: 'short', 
       day: 'numeric', 
@@ -566,7 +592,7 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
                       <div className="bg-white border-2 border-slate-200/50 text-calm-blue-dark w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl font-bold select-none">
                         {visual.emoji}
                       </div>
-                      <h4 className="font-bold text-lg text-slate-800 mb-1.5 leading-snug">{story.title}</h4>
+                      <h4 className="font-bold text-lg text-slate-800 mb-1.5 leading-snug">{getDisplayTitle(story.title)}</h4>
                       <p className="text-xs text-slate-400 mb-4 flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         Created: {formatDate(story.created_at)}
@@ -594,10 +620,11 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
                           // Printable format logic
                           const printWindow = window.open('', '_blank');
                           if (printWindow) {
+                            const cleanTitle = getDisplayTitle(story.title);
                             printWindow.document.write(`
                               <html>
                                 <head>
-                                  <title>Print: ${story.title}</title>
+                                  <title>Print: ${cleanTitle}</title>
                                   <style>
                                     body { font-family: sans-serif; padding: 40px; color: #2D3748; line-height: 1.6; }
                                     h1 { text-align: center; color: #374785; margin-bottom: 40px; }
@@ -608,7 +635,7 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
                                   </style>
                                 </head>
                                 <body>
-                                  <h1>${story.title}</h1>
+                                  <h1>${cleanTitle}</h1>
                                   ${story.content.map(p => `
                                     <div class="page">
                                       <div class="page-num">Page ${p.page_number}</div>
@@ -703,7 +730,7 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
             
             <h4 className="font-sans font-bold text-xl text-slate-800 mb-2 select-none">Delete Social Story?</h4>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed select-none">
-              Are you sure you want to delete <span className="font-bold text-slate-700">"{storyToDelete.title}"</span>? This action cannot be undone.
+              Are you sure you want to delete <span className="font-bold text-slate-700">"{getDisplayTitle(storyToDelete.title)}"</span>? This action cannot be undone.
             </p>
             
             <div className="flex gap-2">
