@@ -41,6 +41,7 @@ export interface Story {
 export interface StoryGenerateRequest {
   situation_id?: number;
   custom_situation_text?: string;
+  custom_title?: string;
   child_name?: string;
   child_age?: number;
   key_details?: string;
