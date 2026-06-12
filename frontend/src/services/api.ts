@@ -7,7 +7,7 @@ import type {
   StoryGenerateRequest 
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -21,12 +21,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export const api = {
   // Emotion Endpoints
   async getEmotions(): Promise<EmotionCheckIn[]> {
-    const response = await fetch(`${API_BASE_URL}/emotions/`);
+    const response = await fetch(`${API_BASE_URL}/api/emotions/`);
     return handleResponse<EmotionCheckIn[]>(response);
   },
 
   async createEmotion(emotion: EmotionCheckInCreate): Promise<EmotionCheckIn> {
-    const response = await fetch(`${API_BASE_URL}/emotions/`, {
+    const response = await fetch(`${API_BASE_URL}/api/emotions/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(emotion),
@@ -36,12 +36,12 @@ export const api = {
 
   // Situation Endpoints
   async getSituations(): Promise<Situation[]> {
-    const response = await fetch(`${API_BASE_URL}/situations/`);
+    const response = await fetch(`${API_BASE_URL}/api/situations/`);
     return handleResponse<Situation[]>(response);
   },
 
   async createSituation(situation: SituationCreate): Promise<Situation> {
-    const response = await fetch(`${API_BASE_URL}/situations/`, {
+    const response = await fetch(`${API_BASE_URL}/api/situations/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(situation),
@@ -51,17 +51,17 @@ export const api = {
 
   // Story Endpoints
   async getStories(): Promise<Story[]> {
-    const response = await fetch(`${API_BASE_URL}/stories/`);
+    const response = await fetch(`${API_BASE_URL}/api/stories/`);
     return handleResponse<Story[]>(response);
   },
 
   async getStory(id: number): Promise<Story> {
-    const response = await fetch(`${API_BASE_URL}/stories/${id}`);
+    const response = await fetch(`${API_BASE_URL}/api/stories/${id}`);
     return handleResponse<Story>(response);
   },
 
   async generateStory(request: StoryGenerateRequest): Promise<Story> {
-    const response = await fetch(`${API_BASE_URL}/stories/generate`, {
+    const response = await fetch(`${API_BASE_URL}/api/stories/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -70,7 +70,7 @@ export const api = {
   },
 
   async deleteStory(id: number): Promise<{ detail: string }> {
-    const response = await fetch(`${API_BASE_URL}/stories/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/api/stories/${id}`, {
       method: 'DELETE',
     });
     return handleResponse<{ detail: string }>(response);
