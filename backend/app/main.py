@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
 from .crud import seed_database_if_empty
-from .routers import emotions, situations, stories
+from .routers import emotions, situations, stories, child_profiles
 
 # Create database tables (SQLite) on startup
 Base.metadata.create_all(bind=engine)
@@ -41,6 +41,7 @@ app.add_middleware(
 app.include_router(emotions.router, prefix="/api")
 app.include_router(situations.router, prefix="/api")
 app.include_router(stories.router, prefix="/api")
+app.include_router(child_profiles.router, prefix="/api")
 
 @app.get("/")
 def read_root():

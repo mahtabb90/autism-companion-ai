@@ -3,6 +3,21 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from .database import Base
 
+class ChildProfile(Base):
+    __tablename__ = "child_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    age = Column(Integer, nullable=True)
+    interests = Column(Text, nullable=True)       # Free-text, e.g. "space, dinosaurs, trains"
+    triggers = Column(Text, nullable=True)        # e.g. "loud noises, sudden changes"
+    sensory_preferences = Column(Text, nullable=True)  # e.g. "soft lighting, no tags on clothes"
+    calming_tools = Column(Text, nullable=True)   # e.g. "blue blanket, deep breaths"
+    communication_style = Column(Text, nullable=True)  # e.g. "prefers visual cues, short sentences"
+    notes = Column(Text, nullable=True)           # Any extra context for the parent
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class EmotionCheckIn(Base):
     __tablename__ = "emotions"
 

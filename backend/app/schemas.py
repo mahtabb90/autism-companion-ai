@@ -3,6 +3,41 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
+# ---------------------------------------------------------------------------
+# Child Profile Schemas
+# ---------------------------------------------------------------------------
+
+class ChildProfileBase(BaseModel):
+    name: str
+    age: Optional[int] = None
+    interests: Optional[str] = None
+    triggers: Optional[str] = None
+    sensory_preferences: Optional[str] = None
+    calming_tools: Optional[str] = None
+    communication_style: Optional[str] = None
+    notes: Optional[str] = None
+
+class ChildProfileCreate(ChildProfileBase):
+    pass
+
+class ChildProfileUpdate(BaseModel):
+    """All fields optional for partial PATCH-style updates."""
+    name: Optional[str] = None
+    age: Optional[int] = None
+    interests: Optional[str] = None
+    triggers: Optional[str] = None
+    sensory_preferences: Optional[str] = None
+    calming_tools: Optional[str] = None
+    communication_style: Optional[str] = None
+    notes: Optional[str] = None
+
+class ChildProfile(ChildProfileBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 class EmotionCheckInBase(BaseModel):
     emotion: str
     intensity: int = Field(default=1, ge=1, le=3)
@@ -83,3 +118,4 @@ class StoryGenerateRequest(BaseModel):
     child_name: Optional[str] = None
     child_age: Optional[int] = None
     key_details: Optional[str] = None  # e.g. "loves space", "scared of loud noises"
+    child_profile_id: Optional[int] = None  # If set, profile data is merged server-side

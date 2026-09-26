@@ -257,6 +257,38 @@ def _generate_mock_social_story(db: Session, request: schemas.StoryGenerateReque
     )
 
 def generate_social_story(db: Session, request: schemas.StoryGenerateRequest) -> schemas.StoryCreate:
+    # 0. If a child profile ID was provided, merge profile fields into the request
+    if request.child_profile_id:
+        profile = db.query(models.ChildProfile).filter(
+            models.ChildProfile.id == request.child_profile_id
+        ).first()
+        if profile:
+            # Only fill in blanks — explicit request values take precedence
+            if not request.child_name and profile.name:
+                request.child_name = profile.name
+            if not request.child_age and profile.age:
+                request.child_age = profile.age
+            # Build enriched key_details by combining profile fields
+            profile_parts = []
+            if profile.interests:
+                profile_parts.append(f"Interests: {profile.interests}")
+            if profile.triggers:
+                profile_parts.append(f"Triggers to be gentle about: {profile.triggers}")
+            if profile.sensory_preferences:
+                profile_parts.append(f"Sensory preferences: {profile.sensory_preferences}")
+            if profile.calming_tools:
+                profile_parts.append(f"Calming tools: {profile.calming_tools}")
+            if profile.communication_style:
+                profile_parts.append(f"Communication style: {profile.communication_style}")
+            if profile.notes:
+                profile_parts.append(f"Additional notes: {profile.notes}")
+            profile_summary = ". ".join(profile_parts)
+            if profile_summary:
+                if request.key_details:
+                    request.key_details = f"{request.key_details}. {profile_summary}"
+                else:
+                    request.key_details = profile_summary
+
     # 1. Retrieve or define situation info
     situation_title = "New Situation"
     situation_desc = ""
