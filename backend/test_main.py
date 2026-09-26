@@ -322,4 +322,110 @@ def test_generate_story_gemini_custom_title():
             assert data["title"] == "Leo Gets a Haircut"
 
 
+# ===========================================================================
+# Child Profile Tests
+# ===========================================================================
+
+def test_create_child_profile():
+    payload = {
+        "name": "Emma",
+        "age": 7,
+        "interests": "dinosaurs, painting",
+        "triggers": "loud sudden noises",
+        "sensory_preferences": "soft textures, dim lighting",
+        "calming_tools": "fidget spinner, deep breaths",
+        "communication_style": "short sentences, visual cues",
+        "notes": "Prefers warnings before transitions."
+    }
+    response = client.post("/api/child-profiles/", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Emma"
+    assert data["age"] == 7
+    assert data["interests"] == "dinosaurs, painting"
+    assert data["triggers"] == "loud sudden noises"
+    assert "id" in data
+    assert "created_at" in data
+    assert "updated_at" in data
+
+
+def test_get_child_profiles():
+    response = client.get("/api/child-profiles/")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert any(p["name"] == "Emma" for p in data)
+
+
+def test_get_child_profile_by_id():
+    payload = {"name": "Noah", "age": 5, "interests": "trains"}
+    create_resp = client.post("/api/child-profiles/", json=payload)
+    assert create_resp.status_code == 200
+    profile_id = create_resp.json()["id"]
+
+    response = client.get(f"/api/child-profiles/{profile_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == profile_id
+    assert data["name"] == "Noah"
+    assert data["interests"] == "trains"
+
+
+def test_get_child_profile_not_found():
+    response = client.get("/api/child-profiles/999999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Child profile not found"
+
+
+def test_update_child_profile():
+    payload = {"name": "Mia", "age": 6, "interests": "butterflies"}
+    create_resp = client.post("/api/child-profiles/", json=payload)
+    assert create_resp.status_code == 200
+    profile_id = create_resp.json()["id"]
+
+    update_payload = {"interests": "butterflies, space", "calming_tools": "star blanket"}
+    response = client.put(f"/api/child-profiles/{profile_id}", json=update_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Mia"
+    assert data["interests"] == "butterflies, space"
+    assert data["calming_tools"] == "star blanket"
+
+
+def test_delete_child_profile():
+    payload = {"name": "TestDeleteProfile", "age": 4}
+    create_resp = client.post("/api/child-profiles/", json=payload)
+    assert create_resp.status_code == 200
+    profile_id = create_resp.json()["id"]
+
+    del_resp = client.delete(f"/api/child-profiles/{profile_id}")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["detail"] == "Child profile deleted successfully"
+
+    get_resp = client.get(f"/api/child-profiles/{profile_id}")
+    assert get_resp.status_code == 404
+
+
+def test_generate_story_with_child_profile_id():
+    """Story generation should auto-enrich from a saved profile."""
+    profile_payload = {
+        "name": "Lily",
+        "age": 6,
+        "interests": "mermaids",
+        "calming_tools": "hugging plush unicorn"
+    }
+    profile_resp = client.post("/api/child-profiles/", json=profile_payload)
+    assert profile_resp.status_code == 200
+    profile_id = profile_resp.json()["id"]
+
+    gen_payload = {
+        "situation_id": 1,
+        "child_profile_id": profile_id
+    }
+    response = client.post("/api/stories/generate", json=gen_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "Lily" in data["content"][0]["text"]
+    page_texts = " ".join(p["text"] for p in data["content"])
+    assert "unicorn" in page_texts or "mermaids" in page_texts
 

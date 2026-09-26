@@ -45,4 +45,32 @@ export interface StoryGenerateRequest {
   child_name?: string;
   child_age?: number;
   key_details?: string;
+  child_profile_id?: number;
 }
+
+export interface ChildProfile {
+  id: number;
+  name: string;
+  age?: number;
+  interests?: string;
+  triggers?: string;
+  sensory_preferences?: string;
+  calming_tools?: string;
+  communication_style?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChildProfileCreate {
+  name: string;
+  age?: number;
+  interests?: string;
+  triggers?: string;
+  sensory_preferences?: string;
+  calming_tools?: string;
+  communication_style?: string;
+  notes?: string;
+}
+
+export type ChildProfileUpdate = Partial<ChildProfileCreate>;

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import type { EmotionCheckIn, Situation, Story } from '../types';
-import { Activity, Plus, FileText, Sparkles, Clock, AlertCircle, CheckCircle, Book, Trash2, Play } from 'lucide-react';
+import type { EmotionCheckIn, Situation, Story, ChildProfile } from '../types';
+import { Activity, Plus, FileText, Sparkles, Clock, AlertCircle, CheckCircle, Book, Trash2, Play, User } from 'lucide-react';
+import { ChildProfilePanel } from '../components/ChildProfilePanel';
 
 const getStoryIcon = (title: string): { emoji: string; color: string } => {
   const t = title.toLowerCase();
@@ -59,7 +60,7 @@ interface ParentModeProps {
 }
 
 export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'generate' | 'stories'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile' | 'generate' | 'stories'>('dashboard');
   const [emotions, setEmotions] = useState<EmotionCheckIn[]>([]);
   const [situations, setSituations] = useState<Situation[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -83,6 +84,9 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
   
   const [generating, setGenerating] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Active child profile (selected in the Profile tab)
+  const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
 
   // Load backend data
   const loadAllData = async () => {
@@ -168,9 +172,10 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
         situation_id: useCustom ? undefined : Number(selectedSituationId),
         custom_situation_text: useCustom ? customDesc : undefined,
         custom_title: useCustom ? customTitle : undefined,
-        child_name: childName || undefined,
-        child_age: childAge ? Number(childAge) : undefined,
+        child_name: childName || (activeProfile?.name) || undefined,
+        child_age: childAge ? Number(childAge) : (activeProfile?.age) || undefined,
         key_details: keyDetails || undefined,
+        child_profile_id: activeProfile?.id || undefined,
       };
       
       // Override title if custom is used
@@ -254,6 +259,18 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
             Emotion Log
           </button>
           
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+              activeTab === 'profile'
+                ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                : 'text-slate-500 hover:bg-white/50'
+            }`}
+          >
+            <User className="w-4 h-4 shrink-0" />
+            Child Profile
+          </button>
+
           <button
             onClick={() => setActiveTab('generate')}
             className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
@@ -387,6 +404,24 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
         </div>
       )}
 
+      {/* TAB 1.5: Child Profile */}
+      {!loadingData && activeTab === 'profile' && (
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <User className="w-5 h-5 text-calm-cream-dark" />
+                Child Profile
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Save your child's details once. Lumi will use them automatically in every story.
+              </p>
+            </div>
+          </div>
+          <ChildProfilePanel onProfileChange={(p) => setActiveProfile(p)} />
+        </div>
+      )}
+
       {/* TAB 2: Story Generator Form */}
       {!loadingData && activeTab === 'generate' && (
         <div className="grid lg:grid-cols-3 gap-8">
@@ -455,6 +490,43 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
               )}
 
               {/* Child Profile Details */}
+              {/* Profile auto-fill notice */}
+              {activeProfile && (
+                <div className="bg-calm-blue/30 border border-calm-blue/50 rounded-2xl p-4 flex items-start gap-3 animate-fadeIn">
+                  <span className="text-lg select-none">🧒</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-calm-blue-dark">
+                      Using {activeProfile.name}'s profile
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Profile details will be woven into the story automatically. You can still override name and age below.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('profile')}
+                    className="text-xs text-calm-blue-dark underline shrink-0 hover:no-underline"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+              {!activeProfile && (
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-300 shrink-0" />
+                  <p className="text-xs text-slate-400">
+                    No profile saved yet.{' '}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('profile')}
+                      className="underline text-calm-cream-dark hover:no-underline"
+                    >
+                      Create a Child Profile
+                    </button>{' '}to auto-fill stories.
+                  </p>
+                </div>
+              )}
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Child's Name (Optional)</label>
@@ -539,7 +611,7 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
                 Carol Gray Social Story Guidelines
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Our AI generates stories formatted strictly under Carol Gray's therapeutic model for individuals with autism:
+                Our AI generates stories following Carol Gray-inspired social story principles:
               </p>
               <ul className="text-xs text-slate-500 space-y-2 list-disc list-inside">
                 <li>Uses simple, literal, visual language (no abstract idioms).</li>

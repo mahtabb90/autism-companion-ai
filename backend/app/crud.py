@@ -3,6 +3,54 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from . import models, schemas
 
+# ---------------------------------------------------------------------------
+# Child Profile CRUD
+# ---------------------------------------------------------------------------
+
+def get_child_profiles(db: Session):
+    return db.query(models.ChildProfile).order_by(models.ChildProfile.created_at.desc()).all()
+
+def get_child_profile(db: Session, profile_id: int):
+    return db.query(models.ChildProfile).filter(models.ChildProfile.id == profile_id).first()
+
+def create_child_profile(db: Session, profile_in: schemas.ChildProfileCreate):
+    db_profile = models.ChildProfile(
+        name=profile_in.name,
+        age=profile_in.age,
+        interests=profile_in.interests,
+        triggers=profile_in.triggers,
+        sensory_preferences=profile_in.sensory_preferences,
+        calming_tools=profile_in.calming_tools,
+        communication_style=profile_in.communication_style,
+        notes=profile_in.notes,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    db.add(db_profile)
+    db.commit()
+    db.refresh(db_profile)
+    return db_profile
+
+def update_child_profile(db: Session, profile_id: int, profile_in: schemas.ChildProfileUpdate):
+    db_profile = get_child_profile(db, profile_id)
+    if not db_profile:
+        return None
+    update_data = profile_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_profile, field, value)
+    db_profile.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(db_profile)
+    return db_profile
+
+def delete_child_profile(db: Session, profile_id: int) -> bool:
+    db_profile = get_child_profile(db, profile_id)
+    if db_profile:
+        db.delete(db_profile)
+        db.commit()
+        return True
+    return False
+
 # Emotion Check-in CRUD
 def get_emotions(db: Session, limit: int = 100):
     return db.query(models.EmotionCheckIn).order_by(models.EmotionCheckIn.timestamp.desc()).limit(limit).all()

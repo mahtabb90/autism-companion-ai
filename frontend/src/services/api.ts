@@ -4,7 +4,10 @@ import type {
   Situation, 
   SituationCreate, 
   Story, 
-  StoryGenerateRequest 
+  StoryGenerateRequest,
+  ChildProfile,
+  ChildProfileCreate,
+  ChildProfileUpdate,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -71,6 +74,42 @@ export const api = {
 
   async deleteStory(id: number): Promise<{ detail: string }> {
     const response = await fetch(`${API_BASE_URL}/api/stories/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse<{ detail: string }>(response);
+  },
+
+  // Child Profile Endpoints
+  async getChildProfiles(): Promise<ChildProfile[]> {
+    const response = await fetch(`${API_BASE_URL}/api/child-profiles/`);
+    return handleResponse<ChildProfile[]>(response);
+  },
+
+  async getChildProfile(id: number): Promise<ChildProfile> {
+    const response = await fetch(`${API_BASE_URL}/api/child-profiles/${id}`);
+    return handleResponse<ChildProfile>(response);
+  },
+
+  async createChildProfile(profile: ChildProfileCreate): Promise<ChildProfile> {
+    const response = await fetch(`${API_BASE_URL}/api/child-profiles/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    return handleResponse<ChildProfile>(response);
+  },
+
+  async updateChildProfile(id: number, profile: ChildProfileUpdate): Promise<ChildProfile> {
+    const response = await fetch(`${API_BASE_URL}/api/child-profiles/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    return handleResponse<ChildProfile>(response);
+  },
+
+  async deleteChildProfile(id: number): Promise<{ detail: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/child-profiles/${id}`, {
       method: 'DELETE',
     });
     return handleResponse<{ detail: string }>(response);
