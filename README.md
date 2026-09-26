@@ -1,156 +1,357 @@
-# Autism Companion AI 🧸☀️
+# 🧸 Autism Companion AI
 
-Autism Companion AI is a supportive, educational web application designed for children with autism and their parents. The application translates complex or potentially stressful everyday situations (like dentist visits, haircuts, or sharing toys) into calm, predictable, step-by-step **Social Stories** following Carol Gray's therapeutic design rules.
+Autism Companion AI is a calm, supportive full-stack web application designed to help children with autism, ADHD, and other children who benefit from predictable visual guidance.
 
-This application is built from the ground up with a calm, high-accessibility interface tailored to avoid sensory overload.
+The app supports children, parents, and caregivers through emotional check-ins, personalized AI-generated social stories, saved story reading, text-to-speech support, and a sensory-friendly interface.
 
----
-
-> [!WARNING]
-> **Educational Disclaimer**: This application is strictly an educational support tool. It is not clinical, therapeutic, or medical software, and is not intended to diagnose, treat, or replace professional healthcare guidance.
+> **Educational Disclaimer**  
+> This application is an educational and supportive tool. It is not a diagnostic, clinical, therapeutic, or medical product, and it is not intended to replace professional healthcare, psychological, or educational guidance.
 
 ---
 
-## 🚀 Key Features
+## 🌐 Live Demo
+
+Frontend: [Add Vercel link here]  
+Backend API: [Add Render link here]
+
+---
+
+## ✨ Key Features
 
 ### ☀️ Child Mode
-- **Emotion Check-In Grid**: Visual, oversized emoji cards (Happy, Calm, Excited, Tired, Worried, Overwhelmed) styled with soothing pastel border tones. Logs entries directly to the database.
-- **Accessible Carousel Story Reader**: Splits stories into discrete, single-sentence visual slides to reduce cognitive load.
-- **Custom Text-to-Speech (TTS)**: Built-in voice playback using the browser's Web Speech API, set to a slow, predictable pacing (`0.85` rate) and warm pitch. Includes *Auto-Read* settings.
-- **Aa Sizing Controls**: Dynamic text enlargement (`Aa-` / `Aa+`) to improve readability.
-- **Success Completion Screen**: A celebratory screen thanking the child for reading.
 
-### 🧸 Parent Dashboard
-- **Child Emotional Tracker**: Chronological timeline displaying emotional logs reported by the child (including self-reported intensity levels and optional parent-logged notes).
-- **Social Story Generator**: Select from predefined situation templates or compose a custom situation. Incorporates child details (name, age, triggers, interests) dynamically.
-- **Carol Gray Rules Prompt**: AI service formats text into descriptive, perspective, and cooperative sentences, written in the 1st person perspective.
-- **Printable Layouts**: Format social stories into clean, visual PDF/Print templates with scene illustration descriptions.
+- **Emotion Check-In**  
+  Children can choose how they feel using large, simple, visual emotion cards such as Happy, Calm, Excited, Tired, Worried, and Overwhelmed.
+
+- **Calm Story Reader**  
+  Social stories are shown as short, predictable pages to reduce cognitive load and support step-by-step understanding.
+
+- **Text-to-Speech Support**  
+  Built-in browser speech playback using the Web Speech API with a slower, calmer reading pace.
+
+- **Adjustable Text Size**  
+  Children can make the story text larger or smaller for easier reading.
+
+- **Supportive Completion Screen**  
+  A gentle success screen encourages the child after finishing a story.
+
+---
+
+### 🧸 Parent Mode
+
+- **Parent Dashboard**  
+  Parents and caregivers can view saved stories and child emotion logs.
+
+- **Emotion Log Timeline**  
+  Emotional check-ins are saved and displayed in a simple chronological format.
+
+- **AI Social Story Generator**  
+  Parents can generate personalized social stories based on everyday situations.
+
+- **Custom Story Titles**  
+  Parents can choose their own title for each story.
+
+- **Personalized Inputs**  
+  Story generation can include:
+  - child name
+  - age
+  - situation
+  - triggers
+  - interests
+  - calming tools
+  - special details
+
+- **Saved Stories**  
+  Generated stories can be saved and opened later in Child Mode.
+
+---
+
+## 🤖 AI Social Story Generation
+
+The app uses Google Gemini AI to generate calm, child-friendly social stories.
+
+The story generation flow is designed to create stories that are:
+
+- written in simple first-person language
+- calm and predictable
+- personalized to the child
+- supportive without making medical claims
+- focused on gentle coping options rather than commands
+- structured into short, clear pages
+
+If a Gemini API key is not available, the app uses a safe fallback story generator so the core experience still works.
+
+Example situations include:
+
+- getting a haircut
+- going to the dentist
+- riding the school bus
+- starting preschool
+- dealing with loud sounds
+- waiting for a turn
+- sharing toys
+- handling transitions and new routines
+
+---
+
+## 🧠 Product Vision
+
+Autism Companion AI is being developed as a real product concept for families, caregivers, and preschool environments.
+
+The long-term vision is to support children with:
+
+- social understanding
+- emotional awareness
+- daily routines
+- communication support
+- calm-down strategies
+- predictable transitions
+- visual learning
+
+The primary focus is autism and ADHD support, but the app is also useful for neurotypical children who benefit from clear routines, visual structure, and gentle emotional support.
+
+---
+
+## 🎨 Design Philosophy
+
+The interface is designed to be calm, predictable, and sensory-friendly.
+
+Design principles:
+
+- soft pastel colors
+- large tap targets
+- minimal visual noise
+- clear navigation
+- short text blocks
+- predictable page structure
+- gentle interactions
+- no overwhelming animations
+
+The app uses a warm companion character, Lumi the bear, to create a friendly and safe experience for children.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS v4 (Custom calm theme color mapping)
-- **Backend**: FastAPI, SQLite, SQLAlchemy ORM, Pydantic
-- **Testing**: Pytest & FastAPI TestClient
-- **Accessibility**: Web Speech API (`speechSynthesis`), responsive font-sizing guides
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Web Speech API
+- Responsive UI design
+
+### Backend
+
+- FastAPI
+- Python
+- SQLite
+- SQLAlchemy ORM
+- Pydantic
+- Google Gemini AI integration
+
+### Testing
+
+- Pytest
+- FastAPI TestClient
+- Frontend production build validation
+
+### Deployment
+
+- Frontend deployed on Vercel
+- Backend deployed on Render
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 autism-companion-ai/
-├── backend/                  # FastAPI & SQLite Database
+├── backend/
 │   ├── app/
-│   │   ├── database.py       # SQLAlchemy engine & session getter
-│   │   ├── models.py         # DB Schemas (emotions, situations, stories)
-│   │   ├── schemas.py        # Pydantic validation
-│   │   ├── crud.py           # DB operations & deduplicated seed data
-│   │   ├── main.py           # App routing entry & CORS config
-│   │   ├── routers/          # API Route Controllers
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   ├── crud.py
+│   │   ├── main.py
+│   │   ├── routers/
 │   │   └── services/
-│   │       └── ai_service.py # Mock AI custom story creator
-│   ├── requirements.txt      # Python backend packages
-│   └── test_main.py          # Pytest backend validation tests
+│   │       └── ai_service.py
+│   ├── requirements.txt
+│   └── test_main.py
 │
-└── frontend/                 # React TS Frontend
-    ├── postcss.config.js     # PostCSS styling configuration
-    ├── tailwind.config.js    # Soft accessibility color palette tokens
-    ├── index.html            # Google Fonts import & SEO tags
-    └── src/
-        ├── App.tsx           # Page routing shell & layout
-        ├── hooks/
-        │   └── useSpeechSynthesis.ts # TTS browser speech synthesis utility
-        ├── services/
-        │   └── api.ts        # API client fetch wrapper
-        └── pages/
-            ├── Home.tsx      # Welcome role selection
-            ├── ChildMode.tsx # Emotion logger & story carousel reader
-            └── ParentMode.tsx# Parent timeline dashboard & story builder
+├── frontend/
+│   ├── src/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── types/
+│   │   └── App.tsx
+│   ├── package.json
+│   └── vite.config.ts
+│
+└── README.md
 ```
 
 ---
 
 ## ⚙️ Installation & Setup
 
-You will need **Python 3.10+**, **Node.js 18+**, and **npm** installed on your system.
+You need:
 
-### 1. Backend API Setup
-In your terminal, navigate to the `backend` folder:
+- Python 3.10+
+- Node.js 18+
+- npm
+
+---
+
+## Backend Setup
+
 ```bash
 cd backend
-```
-
-Create a Python virtual environment and activate it:
-```bash
-# On Git Bash / macOS / Linux:
-python -m venv .venv
+python3 -m venv .venv
 source .venv/Scripts/activate
-
-# On Windows PowerShell:
-# python -m venv .venv
-# .\.venv\Scripts\Activate.ps1
-```
-
-Install backend dependencies:
-```bash
 pip install -r requirements.txt
+python3 -m uvicorn app.main:app --reload
 ```
 
-Run uvicorn dev server:
+The backend will run locally at:
+
+```text
+http://localhost:8000
+```
+
+---
+
+## Gemini API Setup
+
+The app can run with or without a Gemini API key.
+
+To enable live AI story generation:
+
 ```bash
-./.venv/Scripts/python -m uvicorn app.main:app --reload
+cd backend
+cp .env.example .env
 ```
-The server will boot on [http://localhost:8000](http://localhost:8000). The SQLite database `app.db` will automatically generate and seed with templates.
 
-### 1.5. Configure Gemini API (Optional Fallback)
-This application integrates with the **Gemini API** using the Google GenAI SDK to compose high-quality, customized social stories in real-time. If the API key is not configured, the application automatically falls back to structured preseeded and mock social stories.
+Then add your API key to `.env`:
 
-To enable live AI generation:
-1. Obtain a free Gemini API Key from Google AI Studio: [https://aistudio.google.com/](https://aistudio.google.com/)
-2. In the `backend` folder, copy the `.env.example` template to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-3. Open the newly created `.env` file and add your API key:
-   ```env
-   GEMINI_API_KEY=your_actual_api_key_here
-   ```
-4. Start or restart the backend server. The application will detect the key and switch from mock generation to live AI generation.
+```env
+GEMINI_API_KEY=your_api_key_here
+```
 
-### 2. Frontend Setup
-In a new terminal window, navigate to the `frontend` folder:
+If no API key is provided, the app uses a structured fallback story generator.
+
+---
+
+## Frontend Setup
+
+Open a new terminal:
+
 ```bash
 cd frontend
-```
-
-Install dependencies:
-```bash
 npm install
-```
-
-Run Vite development server:
-```bash
 npm run dev
 ```
-The application will launch on [http://localhost:5173](http://localhost:5173).
 
----
+The frontend will run locally at:
 
-## 🧪 Running Automated Tests
-
-To execute the backend test suite, run:
-```bash
-cd backend
-./.venv/Scripts/pytest test_main.py
+```text
+http://localhost:5173
 ```
 
 ---
 
-## 🎨 Design Philosophy (Calm & Accessible)
+## Frontend Environment Variable
 
-The visual design avoids sensory triggers:
-- **Harmony Over Contrast**: Soft Slate Blues (`#F0F4F8`), soothing mints (`#EBF5F0`), and warm creams (`#FCFAF7`). Text is mid-level charcoal (`#2D3748`) to avoid screen glare.
-- **Clear Typography**: Employs **Lexend** and **Outfit** rounded, geometric font faces specifically designed to ease reading difficulties and dyslexia.
-- **Generous Tap Targets**: All buttons have extra padding, large icon elements, and clean animations to prevent accidental navigation.
+For deployed frontend environments such as Vercel, set:
+
+```env
+VITE_API_URL=your_render_backend_url
+```
+
+Example:
+
+```env
+VITE_API_URL=https://your-backend-service.onrender.com
+```
+
+---
+
+## ✅ Testing
+
+Run backend tests:
+
+```bash
+cd backend
+source .venv/Scripts/activate
+pytest
+```
+
+Build frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+Current verified status:
+
+- Backend tests passing
+- Frontend build passing
+- Frontend deployed on Vercel
+- Backend deployed on Render
+
+---
+
+## 🧩 Product Roadmap
+
+Planned improvements:
+
+- Child profile and trigger library
+- Personalized story generation based on saved child profile
+- Routine builder
+- First → Then visual board
+- Communication cards
+- TAKK-inspired visual support cards
+- Lumi’s Calm Corner
+- Breathing exercises for children
+- Kids yoga stories and calm movement cards
+- Preschool / Teacher Mode
+- Swedish language support
+- Printable stories and routine cards
+- Parent-teacher sharing flow
+- Authentication and privacy-focused data handling
+
+---
+
+## 🔐 Privacy & Safety Notes
+
+This project may involve child-related information such as names, routines, emotional states, triggers, and sensory preferences.
+
+Future production versions should include:
+
+- authentication
+- secure database design
+- clear consent flow
+- delete/export options
+- role-based access for parents and educators
+- GDPR-aware handling of child-related data
+- privacy-first design for child-related information
+
+This prototype should not be used as a clinical or diagnostic tool.
+
+---
+
+## 👩‍💻 About the Developer
+
+Built by Mahtab Nezam as a full-stack AI product project.
+
+This project combines AI development, full-stack engineering, child-centered design, accessibility thinking, and real-world experience from working with children in preschool environments.
+
+---
+
+## 📌 Repository
+
+GitHub: https://github.com/mahtabb90/autism-companion-ai
