@@ -11,8 +11,7 @@ The app supports children, parents, and caregivers through emotional check-ins, 
 
 ## 🌐 Live Demo
 
-Frontend: [Add Vercel link here]  
-Backend API: [Add Render link here]
+https://autism-companion-ai.vercel.app/
 
 ---
 
