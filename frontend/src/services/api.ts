@@ -8,6 +8,9 @@ import type {
   ChildProfile,
   ChildProfileCreate,
   ChildProfileUpdate,
+  Routine,
+  RoutineCreate,
+  RoutineUpdate,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -110,6 +113,45 @@ export const api = {
 
   async deleteChildProfile(id: number): Promise<{ detail: string }> {
     const response = await fetch(`${API_BASE_URL}/api/child-profiles/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse<{ detail: string }>(response);
+  },
+
+  // Routine Endpoints
+  async getRoutines(childProfileId?: number): Promise<Routine[]> {
+    const url = childProfileId
+      ? `${API_BASE_URL}/api/routines/?child_profile_id=${childProfileId}`
+      : `${API_BASE_URL}/api/routines/`;
+    const response = await fetch(url);
+    return handleResponse<Routine[]>(response);
+  },
+
+  async getRoutine(id: number): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/api/routines/${id}`);
+    return handleResponse<Routine>(response);
+  },
+
+  async createRoutine(routine: RoutineCreate): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/api/routines/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(routine),
+    });
+    return handleResponse<Routine>(response);
+  },
+
+  async updateRoutine(id: number, routine: RoutineUpdate): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/api/routines/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(routine),
+    });
+    return handleResponse<Routine>(response);
+  },
+
+  async deleteRoutine(id: number): Promise<{ detail: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/routines/${id}`, {
       method: 'DELETE',
     });
     return handleResponse<{ detail: string }>(response);

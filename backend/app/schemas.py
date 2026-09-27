@@ -119,3 +119,55 @@ class StoryGenerateRequest(BaseModel):
     child_age: Optional[int] = None
     key_details: Optional[str] = None  # e.g. "loves space", "scared of loud noises"
     child_profile_id: Optional[int] = None  # If set, profile data is merged server-side
+
+# ---------------------------------------------------------------------------
+# Routine Schemas
+# ---------------------------------------------------------------------------
+
+class RoutineBase(BaseModel):
+    title: str
+    category: Optional[str] = None
+    steps: List[str] = Field(default_factory=list)
+    child_profile_id: Optional[int] = None
+
+class RoutineCreate(RoutineBase):
+    pass
+
+class RoutineUpdate(BaseModel):
+    """All fields optional for partial PATCH-style updates."""
+    title: Optional[str] = None
+    category: Optional[str] = None
+    steps: Optional[List[str]] = None
+    child_profile_id: Optional[int] = None
+
+class Routine(RoutineBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode='before')
+    @classmethod
+    def parse_steps_json(cls, data):
+        """Deserialize the steps JSON string stored in SQLite to a Python list."""
+        if not isinstance(data, dict):
+            res = {}
+            for col in ['id', 'title', 'category', 'child_profile_id', 'created_at', 'updated_at']:
+                res[col] = getattr(data, col, None)
+            raw_steps = getattr(data, 'steps', '[]')
+            if isinstance(raw_steps, str):
+                try:
+                    res['steps'] = json.loads(raw_steps)
+                except Exception:
+                    res['steps'] = []
+            else:
+                res['steps'] = raw_steps
+            return res
+        else:
+            if isinstance(data.get('steps'), str):
+                try:
+                    data['steps'] = json.loads(data['steps'])
+                except Exception:
+                    data['steps'] = []
+            return data
+
+    model_config = ConfigDict(from_attributes=True)
