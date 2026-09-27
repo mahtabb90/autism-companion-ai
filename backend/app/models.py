@@ -49,3 +49,14 @@ class Story(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     situation = relationship("Situation", back_populates="stories")
+
+class Routine(Base):
+    __tablename__ = "routines"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=True)  # e.g. "Morning", "Bedtime", "School"
+    steps = Column(Text, nullable=False, default="[]")  # JSON string of step labels
+    child_profile_id = Column(Integer, ForeignKey("child_profiles.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

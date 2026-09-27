@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import type { EmotionCheckIn, Situation, Story, ChildProfile } from '../types';
-import { Activity, Plus, FileText, Sparkles, Clock, AlertCircle, CheckCircle, Book, Trash2, Play, User } from 'lucide-react';
+import type { EmotionCheckIn, Situation, Story, ChildProfile, Routine } from '../types';
+import { Activity, Plus, FileText, Sparkles, Clock, AlertCircle, CheckCircle, Book, Trash2, Play, User, ListChecks } from 'lucide-react';
 import { ChildProfilePanel } from '../components/ChildProfilePanel';
 
 const getStoryIcon = (title: string): { emoji: string; color: string } => {
@@ -60,7 +60,7 @@ interface ParentModeProps {
 }
 
 export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile' | 'generate' | 'stories'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile' | 'generate' | 'stories' | 'routines'>('dashboard');
   const [emotions, setEmotions] = useState<EmotionCheckIn[]>([]);
   const [situations, setSituations] = useState<Situation[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -88,19 +88,31 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
   // Active child profile (selected in the Profile tab)
   const [activeProfile, setActiveProfile] = useState<ChildProfile | null>(null);
 
+  // Routines state
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [routineTitle, setRoutineTitle] = useState('');
+  const [routineCategory, setRoutineCategory] = useState('');
+  const [routineSteps, setRoutineSteps] = useState<string[]>(['', '', '']);
+  const [savingRoutine, setSavingRoutine] = useState(false);
+  const [routineToDelete, setRoutineToDelete] = useState<Routine | null>(null);
+  const [deletingRoutineId, setDeletingRoutineId] = useState<number | null>(null);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+
   // Load backend data
   const loadAllData = async () => {
     setLoadingData(true);
     setErrorMsg(null);
     try {
-      const [emoData, sitData, storyData] = await Promise.all([
+      const [emoData, sitData, storyData, routineData] = await Promise.all([
         api.getEmotions(),
         api.getSituations(),
-        api.getStories()
+        api.getStories(),
+        api.getRoutines(),
       ]);
       setEmotions(emoData);
       setSituations(sitData);
       setStories(storyData);
+      setRoutines(routineData);
     } catch (err) {
       console.error(err);
       setErrorMsg('Failed to sync data with the backend server. Make sure the FastAPI app is running on localhost:8000.');
@@ -205,6 +217,86 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
     }
   };
 
+  // ── Routine helpers ──────────────────────────────────────────────────────
+  const ROUTINE_CATEGORIES = ['Morning', 'School', 'After School', 'Evening', 'Bedtime', 'Other'];
+
+  const handleAddStep = () => {
+    if (routineSteps.length < 8) setRoutineSteps(prev => [...prev, '']);
+  };
+
+  const handleRemoveStep = (idx: number) => {
+    if (routineSteps.length > 3) setRoutineSteps(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleStepChange = (idx: number, value: string) => {
+    setRoutineSteps(prev => prev.map((s, i) => i === idx ? value : s));
+  };
+
+  const handleSaveRoutine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanSteps = routineSteps.map(s => s.trim()).filter(Boolean);
+    if (!routineTitle.trim() || cleanSteps.length < 1) {
+      setErrorMsg('Please add a title and at least one step.');
+      return;
+    }
+    setSavingRoutine(true);
+    setErrorMsg(null);
+    try {
+      if (editingRoutine) {
+        const updated = await api.updateRoutine(editingRoutine.id, {
+          title: routineTitle.trim(),
+          category: routineCategory || undefined,
+          steps: cleanSteps,
+        });
+        setRoutines(prev => prev.map(r => r.id === editingRoutine.id ? updated : r));
+        setEditingRoutine(null);
+      } else {
+        const created = await api.createRoutine({
+          title: routineTitle.trim(),
+          category: routineCategory || undefined,
+          steps: cleanSteps,
+          child_profile_id: activeProfile?.id,
+        });
+        setRoutines(prev => [created, ...prev]);
+      }
+      setRoutineTitle('');
+      setRoutineCategory('');
+      setRoutineSteps(['', '', '']);
+      setSuccessMsg('Routine saved successfully!');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Failed to save routine. Please try again.');
+    } finally {
+      setSavingRoutine(false);
+    }
+  };
+
+  const handleDeleteRoutine = async () => {
+    if (!routineToDelete) return;
+    setDeletingRoutineId(routineToDelete.id);
+    try {
+      await api.deleteRoutine(routineToDelete.id);
+      setRoutines(prev => prev.filter(r => r.id !== routineToDelete.id));
+      setRoutineToDelete(null);
+      setSuccessMsg('Routine deleted.');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Failed to delete routine.');
+    } finally {
+      setDeletingRoutineId(null);
+    }
+  };
+
+  const handleEditRoutine = (routine: Routine) => {
+    setEditingRoutine(routine);
+    setRoutineTitle(routine.title);
+    setRoutineCategory(routine.category || '');
+    setRoutineSteps(routine.steps.length >= 3 ? [...routine.steps] : [...routine.steps, ...Array(3 - routine.steps.length).fill('')]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const getEmotionEmoji = (emotion: string) => {
     const e = emotion.toLowerCase();
     if (e.includes('happy') || e.includes('joy')) return '☀️';
@@ -235,65 +327,80 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 pb-6 mb-8">
+      <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 mb-8">
+        {/* Title row */}
         <div>
           <h2 className="text-3xl font-bold text-calm-cream-dark font-sans flex items-center gap-2 select-none">
             🧸 Parent Dashboard
           </h2>
           <p className="text-sm text-slate-500 mt-1 select-none">
-            Track emotion histories and write visual Carol Gray social stories.
+            Track emotions, create social stories, and build visual routines for everyday support.
           </p>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto gap-1 border border-slate-200">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
-              activeTab === 'dashboard'
-                ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
-                : 'text-slate-500 hover:bg-white/50'
-            }`}
-          >
-            <Activity className="w-4 h-4 shrink-0" />
-            Emotion Log
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
-              activeTab === 'profile'
-                ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
-                : 'text-slate-500 hover:bg-white/50'
-            }`}
-          >
-            <User className="w-4 h-4 shrink-0" />
-            Child Profile
-          </button>
+        {/* Tab Selector — full width below title, scrollable on very small screens */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1 border border-slate-200 min-w-max">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-none px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+                activeTab === 'dashboard'
+                  ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                  : 'text-slate-500 hover:bg-white/50'
+              }`}
+            >
+              <Activity className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Emotion Log</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('generate')}
-            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
-              activeTab === 'generate'
-                ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
-                : 'text-slate-500 hover:bg-white/50'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 shrink-0" />
-            Generate Story
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('stories')}
-            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
-              activeTab === 'stories'
-                ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
-                : 'text-slate-500 hover:bg-white/50'
-            }`}
-          >
-            <FileText className="w-4 h-4 shrink-0" />
-            Saved Stories
-          </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex-none px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+                activeTab === 'profile'
+                  ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                  : 'text-slate-500 hover:bg-white/50'
+              }`}
+            >
+              <User className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Child Profile</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('generate')}
+              className={`flex-none px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+                activeTab === 'generate'
+                  ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                  : 'text-slate-500 hover:bg-white/50'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Generate Story</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('stories')}
+              className={`flex-none px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+                activeTab === 'stories'
+                  ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                  : 'text-slate-500 hover:bg-white/50'
+              }`}
+            >
+              <FileText className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Saved Stories</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('routines')}
+              className={`flex-none px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 justify-center border border-transparent shadow-xs select-none active:scale-98 ${
+                activeTab === 'routines'
+                  ? 'bg-white border-calm-cream border-b-3 text-calm-cream-dark'
+                  : 'text-slate-500 hover:bg-white/50'
+              }`}
+            >
+              <ListChecks className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Routines</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -821,6 +928,222 @@ export const ParentMode: React.FC<ParentModeProps> = ({ onReadStory }) => {
               >
                 {deletingId !== null ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Routines Builder */}
+      {!loadingData && activeTab === 'routines' && (
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Create / Edit Form */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+              <ListChecks className="w-5 h-5 text-calm-cream-dark" />
+              {editingRoutine ? 'Edit Routine' : 'Create a Routine'}
+            </h3>
+            <p className="text-xs text-slate-400 mb-6">
+              Build a simple step-by-step routine your child can follow at home or school.
+            </p>
+
+            <form onSubmit={handleSaveRoutine} className="space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Routine Title</label>
+                <input
+                  id="routine-title"
+                  type="text"
+                  value={routineTitle}
+                  onChange={e => setRoutineTitle(e.target.value)}
+                  placeholder="e.g., Morning Routine"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm focus:border-calm-cream focus:ring-calm-cream"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Category</label>
+                <select
+                  id="routine-category"
+                  value={routineCategory}
+                  onChange={e => setRoutineCategory(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm focus:border-calm-cream"
+                >
+                  <option value="">-- Choose a category --</option>
+                  {ROUTINE_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Steps ({routineSteps.length}/8)
+                </label>
+                <div className="space-y-2">
+                  {routineSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-calm-cream/70 text-calm-cream-dark text-xs font-bold flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <input
+                        id={`routine-step-${idx}`}
+                        type="text"
+                        value={step}
+                        onChange={e => handleStepChange(idx, e.target.value)}
+                        placeholder={`Step ${idx + 1}...`}
+                        className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm focus:border-calm-cream"
+                      />
+                      {routineSteps.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStep(idx)}
+                          className="text-slate-300 hover:text-red-400 transition shrink-0"
+                          title="Remove step"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {routineSteps.length < 8 && (
+                  <button
+                    type="button"
+                    onClick={handleAddStep}
+                    className="mt-3 flex items-center gap-1.5 text-xs font-bold text-calm-cream-dark hover:text-calm-cream transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add another step
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {editingRoutine && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingRoutine(null);
+                      setRoutineTitle('');
+                      setRoutineCategory('');
+                      setRoutineSteps(['', '', '']);
+                    }}
+                    className="flex-1 bg-slate-50 border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-100 transition text-sm"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingRoutine}
+                  className={`flex-1 font-bold py-3.5 rounded-2xl transition text-sm flex items-center justify-center gap-2 active:scale-95 ${
+                    savingRoutine
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      : 'bg-calm-cream text-calm-cream-dark hover:bg-calm-cream/80'
+                  }`}
+                >
+                  {savingRoutine ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-calm-cream-dark" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  {editingRoutine ? 'Update Routine' : 'Save Routine'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Saved Routines List */}
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Saved Routines ({routines.length})</h3>
+            {routines.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-100 p-10 text-center shadow-sm select-none animate-fadeIn">
+                <span className="text-5xl mb-4 block calm-float">📋</span>
+                <h4 className="font-bold text-base text-slate-800 mb-1">No Routines Yet</h4>
+                <p className="text-slate-400 text-xs">
+                  Create your first routine using the form on the left!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {routines.map(routine => (
+                  <div
+                    key={routine.id}
+                    className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xl select-none">📋</span>
+                          <h4 className="font-bold text-slate-800 text-base">{routine.title}</h4>
+                        </div>
+                        {routine.category && (
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-calm-cream/40 text-calm-cream-dark px-2 py-0.5 rounded-full">
+                            {routine.category}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleEditRoutine(routine)}
+                          className="bg-slate-50 border border-slate-200 text-slate-500 hover:text-calm-cream-dark hover:border-calm-cream rounded-xl px-3 py-1.5 text-xs font-semibold transition active:scale-95"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setRoutineToDelete(routine)}
+                          className="bg-red-50 hover:bg-red-100 text-red-500 border border-red-100 rounded-xl p-1.5 transition active:scale-95"
+                          title="Delete routine"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <ol className="space-y-1">
+                      {routine.steps.map((step, idx) => (
+                        <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
+                          <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Routine */}
+      {routineToDelete && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 w-full max-w-sm border-2 border-slate-100 shadow-xl text-center">
+            <div className="w-16 h-16 bg-red-50 border-2 border-red-200 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h4 className="font-sans font-bold text-xl text-slate-800 mb-2 select-none">Delete Routine?</h4>
+            <p className="text-sm text-slate-500 mb-6 select-none">
+              Delete <span className="font-bold text-slate-700">"{routineToDelete.title}"</span>? This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRoutineToDelete(null)}
+                className="flex-1 bg-slate-50 border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-100 transition text-sm select-none active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRoutine}
+                disabled={deletingRoutineId !== null}
+                className="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition text-sm flex items-center justify-center gap-1.5 active:scale-95 select-none disabled:opacity-50"
+              >
+                {deletingRoutineId !== null ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 ) : 'Delete'}
               </button>
             </div>

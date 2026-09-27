@@ -74,3 +74,26 @@ export interface ChildProfileCreate {
 }
 
 export type ChildProfileUpdate = Partial<ChildProfileCreate>;
+
+export interface RoutineStep {
+  label: string;
+}
+
+export interface Routine {
+  id: number;
+  title: string;
+  category?: string;
+  steps: string[];
+  child_profile_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineCreate {
+  title: string;
+  category?: string;
+  steps: string[];
+  child_profile_id?: number;
+}
+
+export type RoutineUpdate = Partial<RoutineCreate>;

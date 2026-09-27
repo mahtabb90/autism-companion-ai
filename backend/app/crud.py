@@ -237,3 +237,54 @@ def seed_database_if_empty(db: Session):
         ]
         db.add_all(db_emotions)
         db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Routine CRUD
+# ---------------------------------------------------------------------------
+
+def get_routines(db: Session, child_profile_id: int = None):
+    query = db.query(models.Routine).order_by(models.Routine.created_at.desc())
+    if child_profile_id is not None:
+        query = query.filter(models.Routine.child_profile_id == child_profile_id)
+    return query.all()
+
+def get_routine(db: Session, routine_id: int):
+    return db.query(models.Routine).filter(models.Routine.id == routine_id).first()
+
+def create_routine(db: Session, routine_in: schemas.RoutineCreate):
+    db_routine = models.Routine(
+        title=routine_in.title,
+        category=routine_in.category,
+        steps=json.dumps(routine_in.steps),
+        child_profile_id=routine_in.child_profile_id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    db.add(db_routine)
+    db.commit()
+    db.refresh(db_routine)
+    return db_routine
+
+def update_routine(db: Session, routine_id: int, routine_in: schemas.RoutineUpdate):
+    db_routine = get_routine(db, routine_id)
+    if not db_routine:
+        return None
+    update_data = routine_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == 'steps':
+            setattr(db_routine, field, json.dumps(value))
+        else:
+            setattr(db_routine, field, value)
+    db_routine.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(db_routine)
+    return db_routine
+
+def delete_routine(db: Session, routine_id: int) -> bool:
+    db_routine = get_routine(db, routine_id)
+    if db_routine:
+        db.delete(db_routine)
+        db.commit()
+        return True
+    return False

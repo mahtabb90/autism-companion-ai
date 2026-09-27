@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
-import type { Story } from '../types';
-import { ArrowLeft, Volume2, VolumeX, BookOpen, Sparkles, AlertCircle } from 'lucide-react';
+import type { Story, Routine } from '../types';
+import { ArrowLeft, Volume2, VolumeX, BookOpen, Sparkles, AlertCircle, ListChecks, ChevronRight } from 'lucide-react';
 
 interface EmotionOption {
   label: string;
@@ -265,7 +265,7 @@ interface ChildModeProps {
 }
 
 export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onCloseStory }) => {
-  const [step, setStep] = useState<'emotion' | 'post-emotion' | 'stories' | 'reading'>(
+  const [step, setStep] = useState<'emotion' | 'post-emotion' | 'stories' | 'reading' | 'routine-picker' | 'routine-board'>(
     initialStory ? 'reading' : 'emotion'
   );
   const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null);
@@ -277,6 +277,11 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
   const [isAutoSpeak, setIsAutoSpeak] = useState(true);
   const [textSize, setTextSize] = useState<'text-xl' | 'text-2xl' | 'text-3xl' | 'text-4xl'>('text-2xl');
   const [showCompletion, setShowCompletion] = useState(false);
+
+  // Routine state
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
+  const [routineStepIdx, setRoutineStepIdx] = useState(0);
 
   // Achievement/Badge States
   const [checkinsCount, setCheckinsCount] = useState<number>(0);
@@ -354,6 +359,13 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
         });
     }
   }, [step]);
+
+  // Load routines on mount
+  useEffect(() => {
+    api.getRoutines()
+      .then(data => setRoutines(data))
+      .catch(err => console.error('Failed to load routines:', err));
+  }, []);
 
   // Read page content automatically when turning page
   useEffect(() => {
@@ -527,6 +539,13 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               }
             } else if (step === 'stories') {
               setStep('post-emotion');
+            } else if (step === 'routine-board') {
+              // Go back to picker, reset the board
+              setSelectedRoutine(null);
+              setRoutineStepIdx(0);
+              setStep('routine-picker');
+            } else if (step === 'routine-picker') {
+              setStep('emotion');
             } else {
               setStep('emotion');
             }
@@ -575,6 +594,43 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               </button>
             ))}
           </div>
+
+          {/* My Routines section — visible directly on the emotion screen */}
+          {routines.length > 0 && (
+            <div className="mt-10 max-w-2xl mx-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl select-none">📋</span>
+                <div>
+                  <h3 className="font-sans font-bold text-xl text-calm-blue-dark">My Routines</h3>
+                  <p className="text-xs text-slate-400 font-medium">Follow your steps for today!</p>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {routines.map(routine => (
+                  <button
+                    key={routine.id}
+                    onClick={() => {
+                      setSelectedRoutine(routine);
+                      setRoutineStepIdx(0);
+                      setStep('routine-board');
+                    }}
+                    className="w-full bg-white border-4 border-[#EBF5F0] border-b-8 border-b-[#68B0AB] rounded-[2rem] p-5 text-left flex items-center gap-4 shadow-sm hover:shadow-md hover:border-[#68B0AB] transition active:scale-98 group"
+                  >
+                    <span className="text-4xl select-none">📋</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-lg text-calm-blue-dark line-clamp-2 leading-snug">{routine.title}</h4>
+                      {routine.category && (
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{routine.category}</span>
+                      )}
+                      <p className="text-sm text-slate-500 mt-0.5">{routine.steps.length} steps</p>
+                    </div>
+                    <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-[#68B0AB] transition shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {renderBadgeCollection()}
         </div>
       )}
@@ -605,6 +661,16 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               <BookOpen className="w-5 h-5 shrink-0" />
               Read a Social Story
             </button>
+
+            {routines.length > 0 && (
+              <button
+                onClick={() => setStep('routine-picker')}
+                className="w-full bg-[#EBF5F0] text-[#2d5a27] border-2 border-[#68B0AB] border-b-4 font-bold text-lg py-4 rounded-2xl shadow-sm hover:bg-[#d5ebe1] transition flex items-center justify-center gap-2 active:scale-95"
+              >
+                <ListChecks className="w-5 h-5 shrink-0" />
+                My Routines
+              </button>
+            )}
             
             <button
               onClick={() => setStep('emotion')}
@@ -613,6 +679,145 @@ export const ChildMode: React.FC<ChildModeProps> = ({ initialStory = null, onClo
               Log another feeling
             </button>
           </div>
+        </div>
+      )}
+
+      {/* STEP: Routine Picker */}
+      {step === 'routine-picker' && (
+        <div className="max-w-xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-calm-blue-dark mb-2 font-sans text-center select-none">
+            My Routines
+          </h2>
+          <p className="text-center text-slate-500 text-sm mb-8 select-none">
+            Pick a routine to follow today!
+          </p>
+          <div className="space-y-4">
+            {routines.map(routine => (
+              <button
+                key={routine.id}
+                onClick={() => {
+                  setSelectedRoutine(routine);
+                  setRoutineStepIdx(0);
+                  setStep('routine-board');
+                }}
+                className="w-full bg-white border-4 border-[#EBF5F0] border-b-8 border-b-[#68B0AB] rounded-[2rem] p-6 text-left flex items-center gap-4 shadow-sm hover:shadow-md hover:border-[#68B0AB] transition active:scale-98 group"
+              >
+                <span className="text-4xl select-none">📋</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-xl text-calm-blue-dark truncate">{routine.title}</h3>
+                  {routine.category && (
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{routine.category}</span>
+                  )}
+                  <p className="text-sm text-slate-500 mt-0.5">{routine.steps.length} steps</p>
+                </div>
+                <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-[#68B0AB] transition shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP: Routine Board (First → Then) */}
+      {step === 'routine-board' && selectedRoutine && (
+        <div className="max-w-xl mx-auto">
+          {/* Title + progress */}
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold text-calm-blue-dark font-sans select-none">{selectedRoutine.title}</h2>
+            <p className="text-xs text-slate-400 mt-1 select-none">
+              Step {routineStepIdx + 1} of {selectedRoutine.steps.length}
+            </p>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex gap-2 justify-center mb-8">
+            {selectedRoutine.steps.map((_, idx) => (
+              <div
+                key={idx}
+                className={`rounded-full transition-all duration-300 ${
+                  idx < routineStepIdx
+                    ? 'w-3 h-3 bg-[#68B0AB]'
+                    : idx === routineStepIdx
+                    ? 'w-6 h-3 bg-calm-blue-dark'
+                    : 'w-3 h-3 bg-slate-200'
+                }`}
+              />
+            ))}
+          </div>
+
+          {routineStepIdx < selectedRoutine.steps.length ? (
+            <>
+              {/* First → Then Board */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                {/* FIRST card */}
+                <div className="bg-[#EBF5F0] border-4 border-[#68B0AB] border-b-8 rounded-[2rem] p-6 flex flex-col items-center text-center">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#68B0AB] mb-3 select-none">FIRST</span>
+                  <span className="text-6xl mb-4 select-none">⭐</span>
+                  <p className="font-bold text-xl text-[#2d5a27] leading-snug">
+                    {selectedRoutine.steps[routineStepIdx]}
+                  </p>
+                </div>
+
+                {/* THEN card */}
+                <div className="bg-[#F0F4F8] border-4 border-[#A8D0E6] border-b-8 rounded-[2rem] p-6 flex flex-col items-center text-center">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#A8D0E6] mb-3 select-none">THEN</span>
+                  <span className="text-6xl mb-4 select-none">
+                    {routineStepIdx + 1 < selectedRoutine.steps.length ? '🎯' : '🎉'}
+                  </span>
+                  <p className="font-bold text-xl text-[#273c75] leading-snug">
+                    {routineStepIdx + 1 < selectedRoutine.steps.length
+                      ? selectedRoutine.steps[routineStepIdx + 1]
+                      : 'All done! Great job!'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Done / Next button */}
+              {routineStepIdx < selectedRoutine.steps.length - 1 ? (
+                <button
+                  onClick={() => setRoutineStepIdx(i => i + 1)}
+                  className="w-full bg-[#EBF5F0] text-[#2d5a27] border-4 border-[#68B0AB] border-b-8 font-bold text-2xl py-6 rounded-[2rem] hover:bg-[#d5ebe1] transition active:scale-95 select-none"
+                >
+                  ✅ Done! Next step
+                </button>
+              ) : (
+                <button
+                  onClick={() => setRoutineStepIdx(i => i + 1)}
+                  className="w-full bg-[#EBF5F0] text-[#2d5a27] border-4 border-[#68B0AB] border-b-8 font-bold text-2xl py-6 rounded-[2rem] hover:bg-[#d5ebe1] transition active:scale-95 select-none"
+                >
+                  ✅ Done! Finish routine
+                </button>
+              )}
+            </>
+          ) : (
+            /* Completion screen — shown when stepIdx === steps.length */
+            <div className="text-center bg-white rounded-[2.5rem] border-4 border-slate-100 p-10 shadow-sm bg-scandi-gradient flex flex-col items-center">
+              <div className="w-28 h-28 rounded-full overflow-hidden bg-calm-gradient border-4 border-white shadow-md lumi-float mb-6 flex items-center justify-center">
+                <img src="/lumi_welcome.png" alt="Lumi celebrate" className="w-full h-full object-cover scale-110 select-none" />
+              </div>
+              <h3 className="font-sans font-bold text-3xl text-calm-blue-dark mb-3 select-none">You did it! 🎉</h3>
+              <p className="text-slate-600 text-lg mb-8 leading-relaxed select-none">
+                You finished <span className="font-bold text-calm-blue-dark">{selectedRoutine.title}</span>. Amazing job!
+              </p>
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <button
+                  onClick={() => {
+                    setSelectedRoutine(null);
+                    setRoutineStepIdx(0);
+                    setStep('routine-picker');
+                  }}
+                  className="w-full bg-calm-blue text-calm-blue-dark border-2 border-calm-blue-dark border-b-4 font-bold text-lg py-4 rounded-2xl hover:bg-white transition active:scale-95 select-none"
+                >
+                  Pick another routine
+                </button>
+                <button
+                  onClick={() => setStep('emotion')}
+                  className="w-full bg-white text-slate-600 border-2 border-slate-200 border-b-4 font-bold text-base py-3 rounded-2xl hover:bg-slate-50 transition active:scale-95 select-none"
+                >
+                  Back to home
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
